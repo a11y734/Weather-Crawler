@@ -8,7 +8,7 @@
 
 快速安裝：
 ```bash
-pip install streamlit requests pandas pydeck plotly
+pip install -r requirements.txt
 ```
 
 ## 環境變數
