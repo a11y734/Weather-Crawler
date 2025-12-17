@@ -20,6 +20,9 @@ streamlit run main.py
 ```
 預設會在瀏覽器開啟本機網址，若未自動開啟可手動複製終端機上的 URL。
 
+線上 Demo：
+- https://qcv7vzlmtcuvabs2so3kty.streamlit.app/
+
 ## 功能概覽
 - 台灣地圖（pydeck）：依溫度藍→紅色階顯示點位，滑鼠提示白底黑字顯示圖示、地名、最高/最低溫與天氣描述。
 - KPI 摘要：顯示地點數、資料日期範圍、地圖顯示日期。
@@ -30,6 +33,7 @@ streamlit run main.py
 ## 常見問題
 - **404 或抓取失敗**：F-A0010-001 是檔案型資料，必須使用 `https://opendata.cwa.gov.tw/fileapi/v1/opendataapi/` 並帶 `downloadType=WEB&format=JSON`，本程式已採用此路徑。
 - **地圖缺點**：若某地點未顯示，請在 `TAIWAN_COORDS` 補上該 `locationName` 的座標。
+- **SSL 憑證錯誤**：若環境缺少可用憑證，程式會自動嘗試 `verify=False` 並在畫面顯示警告。請先更新系統/`certifi` 憑證，或設定 `REQUESTS_CA_BUNDLE`/`SSL_CERT_FILE` 指向系統 CA；臨時測試可設 `CWA_VERIFY_SSL=0`，但建議盡快恢復驗證。
 
 ## 開發提示
 - 若需重抓資料，可點擊側邊欄「重新抓取資料」或在終端機執行 `streamlit cache clear` 再重啟。
