@@ -9,6 +9,7 @@ import streamlit as st
 import pydeck as pdk
 import plotly.express as px
 import plotly.graph_objects as go
+import urllib3
 from datetime import datetime
 
 # =========================
@@ -180,17 +181,25 @@ def pick_numeric_value(daily_item: dict):
 
 
 @st.cache_data(ttl=600, show_spinner=False)
-def fetch_and_parse(api_key: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+def fetch_and_parse(api_key: str) -> tuple[pd.DataFrame, pd.DataFrame, bool]:
     """
     回傳：
       - df_wx: locationName, dataDate, weather, weatherid, emoji
       - df_temp: locationName, dataDate, MaxT, MinT
+      - insecure_ssl: 是否因 SSL 錯誤改為 verify=False
     """
     params = {"Authorization": api_key, "format": "JSON", "downloadType": "WEB"}
-    r = requests.get(API_URL, params=params, timeout=30, verify=VERIFY_SSL)
-    r.raise_for_status()
+    insecure_ssl = False
+    try:
+        r = requests.get(API_URL, params=params, timeout=30, verify=VERIFY_SSL)
+        r.raise_for_status()
+    except requests.exceptions.SSLError:
+        # 若開啟 SSL 驗證仍失敗，嘗試 verify=False，以避免阻斷；並回報狀態給前端顯示警告。
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        r = requests.get(API_URL, params=params, timeout=30, verify=False)
+        r.raise_for_status()
+        insecure_ssl = True
     raw = r.json()
-
     # 你的實際結構是：data['cwaopendata']['resources']['resource']['data']['agrWeatherForecasts']['weatherForecasts']['location']
     locs = (
         raw["cwaopendata"]["resources"]["resource"]["data"]
@@ -251,7 +260,7 @@ def fetch_and_parse(api_key: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     df_wx = df_wx.drop_duplicates(subset=["locationName", "dataDate"])
     df_temp = df_temp.drop_duplicates(subset=["locationName", "dataDate"])
 
-    return df_wx, df_temp
+    return df_wx, df_temp, insecure_ssl
 
 
 # =========================
@@ -322,10 +331,12 @@ if refresh:
 # 5) 抓資料 + 合併
 # =========================
 try:
-    df_wx, df_temp = fetch_and_parse(API_KEY)
+    df_wx, df_temp, insecure_ssl = fetch_and_parse(API_KEY)
 except Exception as e:
     st.error(f"抓取/解析失敗：{e}")
     st.stop()
+if insecure_ssl:
+    st.warning("已因 SSL 憑證錯誤改用 verify=False 連線；請儘快修復憑證或網路環境，避免安全風險。")
 
 # 合併（同 location + date）
 df = pd.merge(
