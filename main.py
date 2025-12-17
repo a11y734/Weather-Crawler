@@ -123,6 +123,7 @@ API_KEY = os.getenv("CWA_API_KEY", "CWA-544CF458-F510-49F6-B385-58CC9964DBAA")
 DATASET = "F-A0010-001"
 # F-A0010-001 是「檔案型」資料，必須走 fileapi + downloadType=WEB
 API_URL = f"https://opendata.cwa.gov.tw/fileapi/v1/opendataapi/{DATASET}"
+VERIFY_SSL = str(os.getenv("CWA_VERIFY_SSL", "1")).strip().lower() not in {"0", "false", "no"}
 
 # =========================
 # 2) 工具：天氣圖示（emoji）與資料解析
@@ -186,7 +187,7 @@ def fetch_and_parse(api_key: str) -> tuple[pd.DataFrame, pd.DataFrame]:
       - df_temp: locationName, dataDate, MaxT, MinT
     """
     params = {"Authorization": api_key, "format": "JSON", "downloadType": "WEB"}
-    r = requests.get(API_URL, params=params, timeout=30)
+    r = requests.get(API_URL, params=params, timeout=30, verify=VERIFY_SSL)
     r.raise_for_status()
     raw = r.json()
 
@@ -308,6 +309,8 @@ with st.sidebar:
     st.markdown("**資料來源：CWA OpenData（F-A0010-001）**")
     if not api_ok:
         st.warning("請先把 API_KEY 改成你的授權碼（或設定環境變數 CWA_API_KEY）")
+    if not VERIFY_SSL:
+        st.warning("已關閉 SSL 驗證（CWA_VERIFY_SSL=0）。此模式較不安全，請在可信網路環境下使用。")
 
     refresh = st.button("🔄 重新抓取資料")
 
